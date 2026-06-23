@@ -1,0 +1,93 @@
+name: Test custom file extensions
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_REPOSITORY: test-owner/test-repo
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create sample cshtml file without CDN assets
+        run: |
+          mkdir -p /tmp/test-custom-ext
+          cat > /tmp/test-custom-ext/_Layout.cshtml << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Test Layout</title>
+            <link rel="stylesheet" href="/css/site.css" />
+          </head>
+          <body>
+            @RenderBody()
+            <script src="/js/site.js"></script>
+          </body>
+          </html>
+          EOF
+          cat > /tmp/test-custom-ext/Index.razor << 'EOF'
+          @page "/"
+          <h1>Hello, world!</h1>
+          <p>Welcome to your new app.</p>
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          repo-token: 'dummy-token-for-dry-run'
+          dry-run: 'true'
+          repo: 'test-owner/test-repo'
+          repo-path: /tmp/test-custom-ext
+          file-extensions: 'cshtml,razor'
+
+      - name: Assert assets-updated output is set
+        env:
+          ASSETS_UPDATED: ${{ steps.action.outputs.assets-updated }}
+        run: |
+          echo "assets-updated: $ASSETS_UPDATED"
+          if [ -z "$ASSETS_UPDATED" ]; then
+            echo "FAIL: assets-updated output was not set"
+            exit 1
+          fi
+          echo "PASS: assets-updated output is '$ASSETS_UPDATED'"
+
+      - name: Assert assets-updated is false (no CDN assets)
+        env:
+          ASSETS_UPDATED: ${{ steps.action.outputs.assets-updated }}
+        run: |
+          echo "assets-updated: $ASSETS_UPDATED"
+          if [ "$ASSETS_UPDATED" != "false" ]; then
+            echo "FAIL: expected 'false' since no CDN assets in files, got '$ASSETS_UPDATED'"
+            exit 1
+          fi
+          echo "PASS"
+
+      - name: Assert pulls-opened is a JSON array
+        env:
+          PULLS_OPENED: ${{ steps.action.outputs.pulls-opened }}
+        run: |
+          echo "pulls-opened: $PULLS_OPENED"
+          if [ -z "$PULLS_OPENED" ]; then
+            echo "FAIL: pulls-opened output was not set"
+            exit 1
+          fi
+          if [ "$PULLS_OPENED" != "[]" ]; then
+            echo "FAIL: expected empty JSON array '[]' in dry-run mode with no CDN assets, got '$PULLS_OPENED'"
+            exit 1
+          fi
+          echo "PASS: pulls-opened is '$PULLS_OPENED'"
+
+      - name: Assert pulls-closed is a JSON array
+        env:
+          PULLS_CLOSED: ${{ steps.action.outputs.pulls-closed }}
+        run: |
+          echo "pulls-closed: $PULLS_CLOSED"
+          if [ -z "$PULLS_CLOSED" ]; then
+            echo "FAIL: pulls-closed output was not set"
+            exit 1
+          fi
+          if [ "$PULLS_CLOSED" != "[]" ]; then
+            echo "FAIL: expected empty JSON array '[]', got '$PULLS_CLOSED'"
+            exit 1
+          fi
+          echo "PASS: pulls-closed is '$PULLS_CLOSED'"

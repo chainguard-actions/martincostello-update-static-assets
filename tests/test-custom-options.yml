@@ -1,0 +1,84 @@
+name: Test custom branch prefix and commit message options
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_REPOSITORY: test-owner/test-repo
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create sample HTML file without CDN assets
+        run: |
+          mkdir -p /tmp/test-custom-opts
+          cat > /tmp/test-custom-opts/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Test</title>
+          </head>
+          <body>
+            <p>No CDN assets here</p>
+          </body>
+          </html>
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          repo-token: 'dummy-token-for-dry-run'
+          dry-run: 'true'
+          repo: 'test-owner/test-repo'
+          repo-path: /tmp/test-custom-opts
+          file-extensions: 'html'
+          branch-name-prefix: 'update-assets/'
+          commit-message: 'chore: update static assets'
+          user-name: 'test-bot'
+          user-email: 'test-bot@example.com'
+          labels: 'dependencies,automated'
+
+      - name: Assert assets-updated output is false (no CDN assets in file)
+        env:
+          ASSETS_UPDATED: ${{ steps.action.outputs.assets-updated }}
+        run: |
+          echo "assets-updated: $ASSETS_UPDATED"
+          if [ -z "$ASSETS_UPDATED" ]; then
+            echo "FAIL: assets-updated output was not set"
+            exit 1
+          fi
+          if [ "$ASSETS_UPDATED" != "false" ]; then
+            echo "FAIL: expected 'false' since no CDN assets in file, got '$ASSETS_UPDATED'"
+            exit 1
+          fi
+          echo "PASS: assets-updated is '$ASSETS_UPDATED'"
+
+      - name: Assert pulls-opened is empty JSON array
+        env:
+          PULLS_OPENED: ${{ steps.action.outputs.pulls-opened }}
+        run: |
+          echo "pulls-opened: $PULLS_OPENED"
+          if [ -z "$PULLS_OPENED" ]; then
+            echo "FAIL: pulls-opened output was not set"
+            exit 1
+          fi
+          if [ "$PULLS_OPENED" != "[]" ]; then
+            echo "FAIL: expected empty JSON array '[]', got '$PULLS_OPENED'"
+            exit 1
+          fi
+          echo "PASS: pulls-opened is '$PULLS_OPENED'"
+
+      - name: Assert pulls-closed is empty JSON array
+        env:
+          PULLS_CLOSED: ${{ steps.action.outputs.pulls-closed }}
+        run: |
+          echo "pulls-closed: $PULLS_CLOSED"
+          if [ -z "$PULLS_CLOSED" ]; then
+            echo "FAIL: pulls-closed output was not set"
+            exit 1
+          fi
+          if [ "$PULLS_CLOSED" != "[]" ]; then
+            echo "FAIL: expected empty JSON array '[]', got '$PULLS_CLOSED'"
+            exit 1
+          fi
+          echo "PASS: pulls-closed is '$PULLS_CLOSED'"

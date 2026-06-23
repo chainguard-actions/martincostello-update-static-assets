@@ -1,0 +1,15 @@
+{
+  "status": "self_contained",
+  "entries": [
+    {
+      "path": "dist/main.js",
+      "status": "self_contained",
+      "warnings": [
+        "ignored-dynamic-import: Importing \"canvas\" was allowed even though it could not be resolved because dynamic import failures appear to be handled here:",
+        "require-resolve-not-external: \"./xhr-sync-worker.js\" should be marked as external for use with \"require.resolve\"",
+        "ignored-dynamic-import: Importing \"bufferutil\" was allowed even though it could not be resolved because dynamic import failures appear to be handled here:",
+        "ignored-dynamic-import: Importing \"utf-8-validate\" was allowed even though it could not be resolved because dynamic import failures appear to be handled here:"
+      ]
+    }
+  ]
+}
