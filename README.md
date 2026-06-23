@@ -1,1 +1,15 @@
-# martincostello-update-static-assets
+# martincostello/update-static-assets
+
+Attempts to update the versions of static CDN assets in a repository.
+
+Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at [https://github.com/martincostello/update-static-assets](https://github.com/martincostello/update-static-assets).
+
+## Versions
+
+| Version | Tag | Upstream commit |
+|---------|-----|-----------------|
+| v4.0.1 | [`v4.0.1`](https://github.com/chainguard-actions/martincostello-update-static-assets/tree/v4.0.1) | [`e19de6f`](https://github.com/martincostello/update-static-assets/commit/e19de6f8f89855fe1ac4b0baa43f0239a674f5cc) |
+
+## Privacy
+
+This Action contacts Chainguard's licensing server to verify authorization. Connection metadata (IP address, GitHub repository identifier, timestamp, and any metadata encoded in the auth token) is transmitted to Chainguard, Inc. even if authorization is denied in accordance with our [Privacy Notice](https://www.chainguard.dev/legal/privacy-notice)
