@@ -8,6 +8,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 
 | Version | Tag | Upstream commit |
 |---------|-----|-----------------|
+| v2.3.1 | [`v2.3.1`](https://github.com/chainguard-actions/martincostello-update-static-assets/tree/v2.3.1) | [`b7457b2`](https://github.com/martincostello/update-static-assets/commit/b7457b21cbcf7db0a758f4b4ce8c76c0857f8c7e) |
 | v4.0.0 | [`v4.0.0`](https://github.com/chainguard-actions/martincostello-update-static-assets/tree/v4.0.0) | [`e08dec6`](https://github.com/martincostello/update-static-assets/commit/e08dec62576439dd6a3c724f75d0046621e7ac16) |
 | v4.0.1 | [`v4.0.1`](https://github.com/chainguard-actions/martincostello-update-static-assets/tree/v4.0.1) | [`e19de6f`](https://github.com/martincostello/update-static-assets/commit/e19de6f8f89855fe1ac4b0baa43f0239a674f5cc) |
 
