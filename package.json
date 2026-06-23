@@ -1,0 +1,87 @@
+{
+  "name": "update-static-assets",
+  "version": "4.0.0",
+  "private": true,
+  "description": "A GitHub Action that updates HTML static assets.",
+  "main": "lib/main.js",
+  "scripts": {
+    "build": "tsc",
+    "format": "prettier --write eslint.config.mjs src/**/*.ts tests/**/*.ts",
+    "format-check": "prettier --check eslint.config.mjs src/**/*.ts tests/**/*.ts",
+    "generate": "npm run build && npm run package",
+    "lint": "eslint src/**/*.ts --fix",
+    "package": "node esbuild.config.mjs",
+    "test": "vitest run",
+    "publish": "npm run format && npm run lint && npm run generate",
+    "all": "npm run publish && npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/martincostello/update-static-assets.git"
+  },
+  "keywords": [
+    "actions",
+    "assets",
+    "css",
+    "github",
+    "html",
+    "javascript",
+    "static",
+    "update"
+  ],
+  "author": {
+    "name": "Martin Costello",
+    "url": "https://martincostello.com/"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/martincostello/update-static-assets/issues"
+  },
+  "homepage": "https://github.com/martincostello/update-static-assets#readme",
+  "dependencies": {
+    "@actions/core": "3.0.1",
+    "@actions/exec": "3.0.0",
+    "@actions/github": "9.1.1",
+    "@actions/io": "3.0.2",
+    "@octokit/plugin-paginate-rest": "14.0.0",
+    "@octokit/plugin-rest-endpoint-methods": "17.0.0",
+    "glob": "13.0.6",
+    "jsdom": "29.1.1",
+    "lru-cache": "11.5.1",
+    "undici": "8.3.0",
+    "uuid": "14.0.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "3.3.5",
+    "@eslint/js": "9.39.4",
+    "@octokit/types": "16.0.0",
+    "@stylistic/eslint-plugin": "5.10.0",
+    "@types/node": "25.9.2",
+    "@typescript-eslint/eslint-plugin": "8.60.1",
+    "@typescript-eslint/parser": "8.60.1",
+    "@vitest/coverage-v8": "4.1.8",
+    "@vitest/eslint-plugin": "1.6.19",
+    "esbuild": "0.28.0",
+    "eslint": "9.39.4",
+    "eslint-plugin-github": "6.0.0",
+    "eslint-plugin-prettier": "5.5.6",
+    "globals": "17.6.0",
+    "prettier": "3.8.3",
+    "typescript": "6.0.3",
+    "vitest": "4.1.8"
+  },
+  "prettier": {
+    "arrowParens": "always",
+    "bracketSpacing": true,
+    "printWidth": 80,
+    "quoteProps": "consistent",
+    "semi": true,
+    "singleQuote": true,
+    "tabWidth": 2,
+    "trailingComma": "es5",
+    "useTabs": false
+  }
+}

@@ -1,0 +1,55 @@
+name: Test custom file extensions
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_REPOSITORY: test-owner/test-repo
+      GITHUB_EVENT_NAME: workflow_dispatch
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create test directory with custom extension file
+        run: |
+          mkdir -p /tmp/test-custom-ext
+          cat > /tmp/test-custom-ext/page.cshtml << 'EOF'
+          @page
+          <html>
+          <head><title>Razor Page</title></head>
+          <body><p>No CDN assets here</p></body>
+          </html>
+          EOF
+          cat > /tmp/test-custom-ext/template.txt << 'EOF'
+          This is a text file with no CDN assets.
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          repo-token: fake-token-for-testing
+          repo-path: /tmp/test-custom-ext
+          repo: test-owner/test-repo
+          file-extensions: txt
+
+      - name: Assert assets-updated is false
+        env:
+          ACTUAL: ${{ steps.action.outputs.assets-updated }}
+        run: |
+          echo "actual assets-updated: $ACTUAL"
+          if [ "$ACTUAL" != "false" ]; then
+            echo "FAIL: expected assets-updated to be 'false', got '$ACTUAL'"
+            exit 1
+          fi
+          echo "PASS: assets-updated is false"
+
+      - name: Assert pulls-opened is empty array
+        env:
+          ACTUAL: ${{ steps.action.outputs.pulls-opened }}
+        run: |
+          echo "actual pulls-opened: $ACTUAL"
+          if [ "$ACTUAL" != "[]" ]; then
+            echo "FAIL: expected pulls-opened to be '[]', got '$ACTUAL'"
+            exit 1
+          fi
+          echo "PASS: pulls-opened is []"
