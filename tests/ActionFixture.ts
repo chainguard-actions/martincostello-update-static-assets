@@ -1,0 +1,156 @@
+// Copyright (c) Martin Costello, 2022. All rights reserved.
+// Licensed under the Apache 2.0 license. See the LICENSE file in the project root for full license information.
+
+import * as core from '@actions/core';
+import * as fs from 'fs';
+import * as io from '@actions/io';
+import * as os from 'os';
+import * as path from 'path';
+import { vi } from 'vitest';
+import {
+  createEmptyFile,
+  createGitRepo,
+  createTemporaryDirectory,
+} from './helpers';
+import {
+  CapturedCommit,
+  getCapturedCommit,
+  getCapturedCommits,
+  setupCommit,
+} from './fixtures';
+import { run } from '../src/main';
+
+export class ActionFixture {
+  public pullNumber: string = '42';
+  public repo: string = 'martincostello/update-static-assets';
+  public stepSummary: string = '';
+
+  private tempDir: string = '';
+  private outputPath: string = '';
+  private outputs: Record<string, string> = {};
+
+  constructor(private readonly fileExtensions = 'cshtml,html,razor') {}
+
+  get path(): string {
+    return this.tempDir;
+  }
+
+  async initialize(
+    testFiles: { path: string; data: string }[] = []
+  ): Promise<void> {
+    this.tempDir = await createTemporaryDirectory();
+    this.outputPath = path.join(this.tempDir, 'github-outputs');
+
+    await createEmptyFile(this.outputPath);
+    await createGitRepo(this.tempDir, testFiles);
+
+    this.setupEnvironment();
+    this.setupMocks();
+    setupCommit();
+  }
+
+  async run(): Promise<void> {
+    await run();
+
+    const content = await fs.promises.readFile(this.outputPath, 'utf8');
+
+    const lines = content.split(os.EOL);
+    for (let index = 0; index < lines.length; index += 3) {
+      const key = lines[index].split('<<')[0];
+      const value = lines[index + 1];
+      this.outputs[key] = value;
+    }
+  }
+
+  async destroy(): Promise<void> {
+    try {
+      await io.rmRF(this.tempDir);
+    } catch {
+      console.log(`Failed to remove fixture directory '${this.path}'.`);
+    }
+  }
+
+  getOutput(name: string): string {
+    return this.outputs[name];
+  }
+
+  get commits(): CapturedCommit[] {
+    return getCapturedCommits();
+  }
+
+  commit(branch?: string): CapturedCommit {
+    const commit = getCapturedCommit(branch);
+    if (!commit) {
+      throw new Error(
+        branch
+          ? `No commit was created for branch '${branch}'.`
+          : 'No commit was created.'
+      );
+    }
+    return commit;
+  }
+
+  commitMessage(branch?: string): string[] {
+    return this.commit(branch).message.split('\n');
+  }
+
+  committedContent(branch?: string, fileName: string = 'index.html'): string {
+    const commit = this.commit(branch);
+    const addition =
+      commit.additions.find((a) => a.path === fileName) ?? commit.additions[0];
+    return addition.content;
+  }
+
+  private setupEnvironment(): void {
+    const inputs = {
+      'GITHUB_API_URL': 'https://github.local/api/v3',
+      'GITHUB_OUTPUT': this.outputPath,
+      'GITHUB_REPOSITORY': this.repo,
+      'GITHUB_RUN_ID': '123',
+      'GITHUB_SERVER_URL': 'https://github.local',
+      'INPUT_FILE-EXTENSIONS': this.fileExtensions,
+      'INPUT_LABELS': 'foo,bar',
+      'INPUT_REPO': this.repo,
+      'INPUT_REPO-PATH': this.tempDir,
+      'INPUT_REPO-TOKEN': 'my-token',
+      'INPUT_USER-EMAIL': 'github-actions[bot]@users.noreply.github.com',
+      'INPUT_USER-NAME': 'github-actions[bot]',
+    };
+
+    for (const key in inputs) {
+      process.env[key] = inputs[key as keyof typeof inputs];
+    }
+  }
+
+  private setupMocks(): void {
+    this.setupLogging();
+  }
+
+  private setupLogging(): void {
+    const logger = (level: string, arg: string | Error) => {
+      console.debug(`[${level}] ${arg}`);
+    };
+
+    vi.mocked(core.debug).mockImplementation((arg) => {
+      logger('debug', arg);
+    });
+    vi.mocked(core.info).mockImplementation((arg) => {
+      logger('info', arg);
+    });
+    vi.mocked(core.notice).mockImplementation((arg) => {
+      logger('notice', arg);
+    });
+    vi.mocked(core.warning).mockImplementation((arg) => {
+      logger('warning', arg);
+    });
+    vi.mocked(core.error).mockImplementation((arg) => {
+      logger('error', arg);
+    });
+
+    vi.mocked(core.summary.addRaw).mockImplementation((text: string) => {
+      this.stepSummary += text;
+      return core.summary;
+    });
+    vi.mocked(core.summary.write).mockReturnThis();
+  }
+}

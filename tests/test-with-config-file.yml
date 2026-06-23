@@ -1,0 +1,56 @@
+name: Test - With Configuration File
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_REPOSITORY: martincostello/update-static-assets
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create test directory with config file
+        run: |
+          mkdir -p /tmp/test-repo-config
+          echo "<html><body>No CDN assets here</body></html>" > /tmp/test-repo-config/index.html
+          cat > /tmp/test-repo-config/.update-static-assets.json << 'EOF'
+          {
+            "ignore": [
+              {
+                "cdn": "cdnjs",
+                "name": "bootstrap",
+                "version": "6\\..*"
+              }
+            ]
+          }
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          repo-token: fake-token-for-testing
+          repo-path: /tmp/test-repo-config
+          repo: martincostello/update-static-assets
+        continue-on-error: true
+
+      - name: Assert assets-updated output is false
+        env:
+          ASSETS_UPDATED: ${{ steps.action.outputs.assets-updated }}
+        run: |
+          echo "assets-updated: $ASSETS_UPDATED"
+          if [ "$ASSETS_UPDATED" != "false" ]; then
+            echo "FAIL: expected assets-updated to be 'false', got '$ASSETS_UPDATED'"
+            exit 1
+          fi
+          echo "PASS"
+
+      - name: Assert pulls-opened output is empty array
+        env:
+          PULLS_OPENED: ${{ steps.action.outputs.pulls-opened }}
+        run: |
+          echo "pulls-opened: $PULLS_OPENED"
+          if [ "$PULLS_OPENED" != "[]" ]; then
+            echo "FAIL: expected pulls-opened to be '[]', got '$PULLS_OPENED'"
+            exit 1
+          fi
+          echo "PASS"
