@@ -1,0 +1,74 @@
+name: Test basic dry-run usage
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create git repo with HTML file containing no CDN assets
+        run: |
+          mkdir -p /tmp/test-assets-basic
+          cd /tmp/test-assets-basic
+          git init
+          git config user.email "test@example.com"
+          git config user.name "Test User"
+          git remote add origin https://github.com/octocat/hello-world.git
+          cat > index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Test Page</title>
+            <link rel="stylesheet" href="/css/site.css">
+          </head>
+          <body>
+            <h1>Hello World</h1>
+            <script src="/js/site.js"></script>
+          </body>
+          </html>
+          EOF
+          git add .
+          git commit -m "Initial commit"
+
+      - id: action
+        uses: .
+        with:
+          repo-token: 'fake-token-for-testing'
+          repo-path: /tmp/test-assets-basic
+          file-extensions: 'html'
+          dry-run: 'true'
+          repo: 'octocat/hello-world'
+
+      - name: Assert assets-updated output is set
+        env:
+          ASSETS_UPDATED: ${{ steps.action.outputs.assets-updated }}
+        run: |
+          echo "assets-updated: $ASSETS_UPDATED"
+          if [ -z "$ASSETS_UPDATED" ]; then
+            echo "FAIL: assets-updated output was not set"
+            exit 1
+          fi
+          echo "PASS: assets-updated output is set to '$ASSETS_UPDATED'"
+
+      - name: Assert pulls-opened output is set
+        env:
+          PULLS_OPENED: ${{ steps.action.outputs.pulls-opened }}
+        run: |
+          echo "pulls-opened: $PULLS_OPENED"
+          if [ -z "$PULLS_OPENED" ]; then
+            echo "FAIL: pulls-opened output was not set"
+            exit 1
+          fi
+          echo "PASS: pulls-opened output is '$PULLS_OPENED'"
+
+      - name: Assert pulls-closed output is set
+        env:
+          PULLS_CLOSED: ${{ steps.action.outputs.pulls-closed }}
+        run: |
+          echo "pulls-closed: $PULLS_CLOSED"
+          if [ -z "$PULLS_CLOSED" ]; then
+            echo "FAIL: pulls-closed output was not set"
+            exit 1
+          fi
+          echo "PASS: pulls-closed output is '$PULLS_CLOSED'"
