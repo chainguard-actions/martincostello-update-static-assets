@@ -1,0 +1,83 @@
+name: Test dry-run with CDN assets present
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_REPOSITORY: fake-owner/fake-repo
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create test repo with cdnjs asset reference
+        run: |
+          mkdir -p /tmp/test-cdn-assets
+          cat > /tmp/test-cdn-assets/index.html <<'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Test</title>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.0.0/jquery.min.js"
+                    integrity="sha512-placeholder"
+                    crossorigin="anonymous"></script>
+          </head>
+          <body><p>Hello World</p></body>
+          </html>
+          EOF
+          cd /tmp/test-cdn-assets
+          git init --initial-branch=main
+          git config user.email "test@example.com"
+          git config user.name "Test User"
+          git remote add origin https://github.com/fake-owner/fake-repo.git
+          git add .
+          git commit -m "Initial commit"
+
+      - id: action
+        uses: .
+        with:
+          repo-token: fake-token-for-dry-run
+          repo-path: /tmp/test-cdn-assets
+          repo: fake-owner/fake-repo
+          dry-run: 'true'
+
+      - name: Assert assets-updated output is set
+        env:
+          ACTUAL: ${{ steps.action.outputs.assets-updated }}
+        run: |
+          echo "actual assets-updated: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: expected assets-updated to be set (true or false)"
+            exit 1
+          fi
+          echo "PASS: assets-updated=$ACTUAL"
+
+      - name: Assert pulls-opened is a valid JSON array
+        env:
+          ACTUAL: ${{ steps.action.outputs.pulls-opened }}
+        run: |
+          echo "actual pulls-opened: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: expected pulls-opened to be set"
+            exit 1
+          fi
+          # Validate it's a JSON array (either [] or [0] in dry-run mode)
+          echo "$ACTUAL" | python3 -c "import sys, json; data = json.load(sys.stdin); assert isinstance(data, list), 'not a list'" || {
+            echo "FAIL: pulls-opened is not a valid JSON array: $ACTUAL"
+            exit 1
+          }
+          echo "PASS: pulls-opened=$ACTUAL"
+
+      - name: Assert pulls-closed is a valid JSON array
+        env:
+          ACTUAL: ${{ steps.action.outputs.pulls-closed }}
+        run: |
+          echo "actual pulls-closed: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: expected pulls-closed to be set"
+            exit 1
+          fi
+          echo "$ACTUAL" | python3 -c "import sys, json; data = json.load(sys.stdin); assert isinstance(data, list), 'not a list'" || {
+            echo "FAIL: pulls-closed is not a valid JSON array: $ACTUAL"
+            exit 1
+          }
+          echo "PASS: pulls-closed=$ACTUAL"

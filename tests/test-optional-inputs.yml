@@ -1,0 +1,61 @@
+name: Test optional inputs (commit-message, user-name, user-email)
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_REPOSITORY: fake-owner/fake-repo
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create test repo with no CDN assets
+        run: |
+          mkdir -p /tmp/test-opts-repo
+          cat > /tmp/test-opts-repo/index.html <<'EOF'
+          <!DOCTYPE html>
+          <html><body><p>No CDN assets here</p></body></html>
+          EOF
+          cd /tmp/test-opts-repo
+          git init --initial-branch=main
+          git config user.email "test@example.com"
+          git config user.name "Test User"
+          git remote add origin https://github.com/fake-owner/fake-repo.git
+          git add .
+          git commit -m "Initial commit"
+
+      - id: action
+        uses: .
+        with:
+          repo-token: fake-token-for-dry-run
+          repo-path: /tmp/test-opts-repo
+          repo: fake-owner/fake-repo
+          dry-run: 'true'
+          commit-message: 'chore: update static assets'
+          user-name: 'test-bot'
+          user-email: 'test-bot@example.com'
+          branch-name-prefix: 'deps/'
+          labels: 'dependencies,automated'
+
+      - name: Assert action completed successfully with optional inputs
+        env:
+          ASSETS_UPDATED: ${{ steps.action.outputs.assets-updated }}
+          PULLS_OPENED: ${{ steps.action.outputs.pulls-opened }}
+          PULLS_CLOSED: ${{ steps.action.outputs.pulls-closed }}
+        run: |
+          echo "assets-updated: $ASSETS_UPDATED"
+          echo "pulls-opened: $PULLS_OPENED"
+          echo "pulls-closed: $PULLS_CLOSED"
+          if [ "$ASSETS_UPDATED" != "false" ]; then
+            echo "FAIL: expected assets-updated to be 'false', got '$ASSETS_UPDATED'"
+            exit 1
+          fi
+          if [ "$PULLS_OPENED" != "[]" ]; then
+            echo "FAIL: expected pulls-opened to be '[]', got '$PULLS_OPENED'"
+            exit 1
+          fi
+          if [ "$PULLS_CLOSED" != "[]" ]; then
+            echo "FAIL: expected pulls-closed to be '[]', got '$PULLS_CLOSED'"
+            exit 1
+          fi
+          echo "PASS: all outputs are correct"

@@ -1,0 +1,69 @@
+name: Test dry-run with no CDN assets
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_REPOSITORY: fake-owner/fake-repo
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create test repo with no CDN assets
+        run: |
+          mkdir -p /tmp/test-no-assets
+          cat > /tmp/test-no-assets/index.html <<'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head><title>Test</title></head>
+          <body><p>Hello World - no CDN assets here</p></body>
+          </html>
+          EOF
+          cd /tmp/test-no-assets
+          git init --initial-branch=main
+          git config user.email "test@example.com"
+          git config user.name "Test User"
+          git remote add origin https://github.com/fake-owner/fake-repo.git
+          git add .
+          git commit -m "Initial commit"
+
+      - id: action
+        uses: .
+        with:
+          repo-token: fake-token-for-dry-run
+          repo-path: /tmp/test-no-assets
+          repo: fake-owner/fake-repo
+          dry-run: 'true'
+
+      - name: Assert assets-updated is false
+        env:
+          ACTUAL: ${{ steps.action.outputs.assets-updated }}
+        run: |
+          echo "actual assets-updated: $ACTUAL"
+          if [ "$ACTUAL" != "false" ]; then
+            echo "FAIL: expected assets-updated to be 'false', got '$ACTUAL'"
+            exit 1
+          fi
+          echo "PASS"
+
+      - name: Assert pulls-opened is empty array
+        env:
+          ACTUAL: ${{ steps.action.outputs.pulls-opened }}
+        run: |
+          echo "actual pulls-opened: $ACTUAL"
+          if [ "$ACTUAL" != "[]" ]; then
+            echo "FAIL: expected pulls-opened to be '[]', got '$ACTUAL'"
+            exit 1
+          fi
+          echo "PASS"
+
+      - name: Assert pulls-closed is empty array
+        env:
+          ACTUAL: ${{ steps.action.outputs.pulls-closed }}
+        run: |
+          echo "actual pulls-closed: $ACTUAL"
+          if [ "$ACTUAL" != "[]" ]; then
+            echo "FAIL: expected pulls-closed to be '[]', got '$ACTUAL'"
+            exit 1
+          fi
+          echo "PASS"

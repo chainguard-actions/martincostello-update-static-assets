@@ -1,0 +1,72 @@
+name: Test custom file extensions
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_REPOSITORY: fake-owner/fake-repo
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create test repo with custom extension files
+        run: |
+          mkdir -p /tmp/test-ext-repo
+          # Create a .txt file with a CDN reference (should be ignored when scanning only .html)
+          cat > /tmp/test-ext-repo/page.txt <<'EOF'
+          https://cdnjs.cloudflare.com/ajax/libs/jquery/1.0.0/jquery.min.js
+          EOF
+          # Create a .html file with no CDN references (should be scanned but nothing found)
+          cat > /tmp/test-ext-repo/index.html <<'EOF'
+          <!DOCTYPE html>
+          <html><body><p>No CDN assets here</p></body></html>
+          EOF
+          cd /tmp/test-ext-repo
+          git init --initial-branch=main
+          git config user.email "test@example.com"
+          git config user.name "Test User"
+          git remote add origin https://github.com/fake-owner/fake-repo.git
+          git add .
+          git commit -m "Initial commit"
+
+      - id: action
+        uses: .
+        with:
+          repo-token: fake-token-for-dry-run
+          repo-path: /tmp/test-ext-repo
+          repo: fake-owner/fake-repo
+          file-extensions: 'html'
+          dry-run: 'true'
+
+      - name: Assert assets-updated is false (txt file with CDN ref was ignored)
+        env:
+          ACTUAL: ${{ steps.action.outputs.assets-updated }}
+        run: |
+          echo "actual assets-updated: $ACTUAL"
+          if [ "$ACTUAL" != "false" ]; then
+            echo "FAIL: expected assets-updated to be 'false' since only .html files are scanned and they have no CDN refs, got '$ACTUAL'"
+            exit 1
+          fi
+          echo "PASS"
+
+      - name: Assert pulls-opened is empty array
+        env:
+          ACTUAL: ${{ steps.action.outputs.pulls-opened }}
+        run: |
+          echo "actual pulls-opened: $ACTUAL"
+          if [ "$ACTUAL" != "[]" ]; then
+            echo "FAIL: expected pulls-opened to be '[]', got '$ACTUAL'"
+            exit 1
+          fi
+          echo "PASS"
+
+      - name: Assert pulls-closed is empty array
+        env:
+          ACTUAL: ${{ steps.action.outputs.pulls-closed }}
+        run: |
+          echo "actual pulls-closed: $ACTUAL"
+          if [ "$ACTUAL" != "[]" ]; then
+            echo "FAIL: expected pulls-closed to be '[]', got '$ACTUAL'"
+            exit 1
+          fi
+          echo "PASS"
