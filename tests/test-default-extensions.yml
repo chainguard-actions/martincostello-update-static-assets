@@ -1,0 +1,71 @@
+name: Test default file extensions (cshtml, html, razor)
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create dedicated directory with cshtml and razor files containing no CDN assets
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/tests/tmp-default-ext"
+          cat > "$GITHUB_WORKSPACE/tests/tmp-default-ext/Index.cshtml" << 'EOF'
+          @page
+          @model IndexModel
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Test</title>
+          </head>
+          <body>
+            <h1>Hello World</h1>
+          </body>
+          </html>
+          EOF
+          cat > "$GITHUB_WORKSPACE/tests/tmp-default-ext/Component.razor" << 'EOF'
+          <div>
+            <h2>Razor Component</h2>
+            <p>No CDN assets here.</p>
+          </div>
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          repo-token: ${{ github.token }}
+          repo-path: ${{ github.workspace }}/tests/tmp-default-ext
+          dry-run: 'true'
+
+      - name: Assert no assets updated when files have no CDN references
+        env:
+          ACTUAL: ${{ steps.action.outputs.assets-updated }}
+        run: |
+          echo "actual assets-updated: $ACTUAL"
+          if [ "$ACTUAL" != "false" ]; then
+            echo "FAIL: expected assets-updated to be 'false', got '$ACTUAL'"
+            exit 1
+          fi
+          echo "PASS: assets-updated is false as expected"
+
+      - name: Assert pulls-opened is empty
+        env:
+          ACTUAL: ${{ steps.action.outputs.pulls-opened }}
+        run: |
+          echo "actual pulls-opened: $ACTUAL"
+          if [ "$ACTUAL" != "[]" ]; then
+            echo "FAIL: expected pulls-opened to be '[]', got '$ACTUAL'"
+            exit 1
+          fi
+          echo "PASS: pulls-opened is []"
+
+      - name: Assert pulls-closed is empty
+        env:
+          ACTUAL: ${{ steps.action.outputs.pulls-closed }}
+        run: |
+          echo "actual pulls-closed: $ACTUAL"
+          if [ "$ACTUAL" != "[]" ]; then
+            echo "FAIL: expected pulls-closed to be '[]', got '$ACTUAL'"
+            exit 1
+          fi
+          echo "PASS: pulls-closed is []"

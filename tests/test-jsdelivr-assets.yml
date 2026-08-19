@@ -1,0 +1,72 @@
+name: Test jsdelivr CDN assets detection
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up a temp git repo with an HTML file containing jsdelivr CDN assets
+        run: |
+          mkdir -p /tmp/test-jsdelivr-repo
+          cd /tmp/test-jsdelivr-repo
+          git init -b main
+          git config user.email "test@example.com"
+          git config user.name "Test User"
+          git remote add origin "https://github.com/$GITHUB_REPOSITORY.git"
+          cat > index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+            <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+          </head>
+          <body>
+            <h1>Test jsdelivr</h1>
+          </body>
+          </html>
+          EOF
+          git add .
+          git commit -m "Initial commit"
+
+      - id: action
+        uses: .
+        with:
+          repo-token: ${{ github.token }}
+          repo-path: /tmp/test-jsdelivr-repo
+          dry-run: 'true'
+          file-extensions: 'html'
+
+      - name: Assert assets-updated output is a valid boolean string
+        env:
+          ACTUAL: ${{ steps.action.outputs.assets-updated }}
+        run: |
+          echo "actual assets-updated: $ACTUAL"
+          if [ "$ACTUAL" != "true" ] && [ "$ACTUAL" != "false" ]; then
+            echo "FAIL: expected assets-updated to be 'true' or 'false', got '$ACTUAL'"
+            exit 1
+          fi
+          echo "PASS: assets-updated is a valid boolean string: $ACTUAL"
+
+      - name: Assert pulls-opened is a valid JSON array
+        env:
+          ACTUAL: ${{ steps.action.outputs.pulls-opened }}
+        run: |
+          echo "actual pulls-opened: $ACTUAL"
+          if ! echo "$ACTUAL" | grep -qE '^\[.*\]$'; then
+            echo "FAIL: expected pulls-opened to be a JSON array, got '$ACTUAL'"
+            exit 1
+          fi
+          echo "PASS: pulls-opened is a valid JSON array: $ACTUAL"
+
+      - name: Assert pulls-closed is a valid JSON array
+        env:
+          ACTUAL: ${{ steps.action.outputs.pulls-closed }}
+        run: |
+          echo "actual pulls-closed: $ACTUAL"
+          if ! echo "$ACTUAL" | grep -qE '^\[.*\]$'; then
+            echo "FAIL: expected pulls-closed to be a JSON array, got '$ACTUAL'"
+            exit 1
+          fi
+          echo "PASS: pulls-closed is a valid JSON array: $ACTUAL"
