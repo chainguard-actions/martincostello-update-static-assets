@@ -1,4 +1,4 @@
-name: Test custom file extensions - no updates needed
+name: Test basic usage - no updates needed
 on:
   workflow_dispatch:
 jobs:
@@ -10,21 +10,14 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Create test files with custom extensions
+      - name: Create a test HTML file with no CDN assets
         run: |
-          mkdir -p "$GITHUB_WORKSPACE/test-custom"
-          cat > "$GITHUB_WORKSPACE/test-custom/page.cshtml" << 'EOF'
+          mkdir -p "$GITHUB_WORKSPACE/test-site"
+          cat > "$GITHUB_WORKSPACE/test-site/index.html" << 'EOF'
           <!DOCTYPE html>
           <html>
-          <head><title>Razor Page</title></head>
-          <body><p>No CDN assets here.</p></body>
-          </html>
-          EOF
-          cat > "$GITHUB_WORKSPACE/test-custom/layout.razor" << 'EOF'
-          <!DOCTYPE html>
-          <html>
-          <head><title>Blazor Layout</title></head>
-          <body>@Body</body>
+          <head><title>Test</title></head>
+          <body><p>Hello, world!</p></body>
           </html>
           EOF
 
@@ -32,8 +25,8 @@ jobs:
         uses: .
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-          repo-path: ${{ github.workspace }}/test-custom
-          file-extensions: 'cshtml,razor'
+          repo-path: ${{ github.workspace }}/test-site
+          file-extensions: 'html'
 
       - name: Assert assets-updated is false
         env:
@@ -56,3 +49,14 @@ jobs:
             exit 1
           fi
           echo "PASS: pulls-opened is []"
+
+      - name: Assert pulls-closed is empty array
+        env:
+          ACTUAL: ${{ steps.action.outputs.pulls-closed }}
+        run: |
+          echo "actual pulls-closed: $ACTUAL"
+          if [ "$ACTUAL" != "[]" ]; then
+            echo "FAIL: expected pulls-closed to be '[]', got '$ACTUAL'"
+            exit 1
+          fi
+          echo "PASS: pulls-closed is []"
