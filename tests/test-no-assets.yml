@@ -1,0 +1,63 @@
+name: Test - No Static Assets Found
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create a directory with HTML files that have no CDN references
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/tests/fixtures/no-assets"
+          cat > "$GITHUB_WORKSPACE/tests/fixtures/no-assets/index.html" << 'EOF'
+          <!DOCTYPE html>
+          <html>
+            <head><title>Test</title></head>
+            <body><p>Hello, world!</p></body>
+          </html>
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          repo-path: ${{ github.workspace }}/tests/fixtures/no-assets
+          file-extensions: html
+
+      - name: Assert assets-updated is false
+        env:
+          ACTUAL: ${{ steps.action.outputs.assets-updated }}
+        run: |
+          echo "actual assets-updated: $ACTUAL"
+          if [ "$ACTUAL" != "false" ]; then
+            echo "FAIL: expected assets-updated to be 'false', got '$ACTUAL'"
+            exit 1
+          fi
+          echo "PASS: assets-updated is false"
+
+      - name: Assert pulls-opened is empty array
+        env:
+          ACTUAL: ${{ steps.action.outputs.pulls-opened }}
+        run: |
+          echo "actual pulls-opened: $ACTUAL"
+          if [ "$ACTUAL" != "[]" ]; then
+            echo "FAIL: expected pulls-opened to be '[]', got '$ACTUAL'"
+            exit 1
+          fi
+          echo "PASS: pulls-opened is []"
+
+      - name: Assert pulls-closed is empty array
+        env:
+          ACTUAL: ${{ steps.action.outputs.pulls-closed }}
+        run: |
+          echo "actual pulls-closed: $ACTUAL"
+          if [ "$ACTUAL" != "[]" ]; then
+            echo "FAIL: expected pulls-closed to be '[]', got '$ACTUAL'"
+            exit 1
+          fi
+          echo "PASS: pulls-closed is []"

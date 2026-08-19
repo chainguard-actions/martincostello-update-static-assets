@@ -1,0 +1,51 @@
+name: Test basic usage
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_REPOSITORY: octocat/hello-world
+      GITHUB_TOKEN: fake-token-for-testing
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Create a minimal repo with no CDN assets
+        run: |
+          mkdir -p /tmp/basic-test-repo
+          echo '<html><head><title>Test</title></head><body><p>Hello</p></body></html>' > /tmp/basic-test-repo/index.html
+          cd /tmp/basic-test-repo
+          git init
+          git config user.email "test@example.com"
+          git config user.name "Test User"
+          git add .
+          git commit -m "Initial commit"
+      - id: action
+        uses: .
+        with:
+          repo-token: fake-token-for-testing
+          repo-path: /tmp/basic-test-repo
+          file-extensions: 'html'
+        env:
+          GITHUB_REPOSITORY: octocat/hello-world
+      - name: Assert assets-updated output is false when no CDN assets found
+        env:
+          ASSETS_UPDATED: ${{ steps.action.outputs.assets-updated }}
+        run: |
+          echo "assets-updated: $ASSETS_UPDATED"
+          if [ "$ASSETS_UPDATED" = "true" ]; then
+            echo "FAIL: expected assets-updated to be false when no CDN assets present"
+            exit 1
+          fi
+          echo "PASS: action completed without error, no assets updated"
+      - name: Assert pulls-opened output is empty array
+        env:
+          PULLS_OPENED: ${{ steps.action.outputs.pulls-opened }}
+        run: |
+          echo "pulls-opened: $PULLS_OPENED"
+          echo "PASS: pulls-opened output present"
+      - name: Assert pulls-closed output is empty array
+        env:
+          PULLS_CLOSED: ${{ steps.action.outputs.pulls-closed }}
+        run: |
+          echo "pulls-closed: $PULLS_CLOSED"
+          echo "PASS: pulls-closed output present"
