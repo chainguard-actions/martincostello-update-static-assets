@@ -1,0 +1,47 @@
+name: Test - Optional Inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        with:
+          repo-token: ${{ github.token }}
+          repo-path: ${{ github.workspace }}/tests/fixtures/optional-inputs
+          dry-run: 'true'
+          file-extensions: 'html'
+          branch-name-prefix: 'update-assets/'
+          commit-message: 'chore: update static assets'
+          labels: ''
+          close-superseded: 'false'
+          user-email: 'bot@example.com'
+          user-name: 'Test Bot'
+
+      - name: Assert action completed successfully with optional inputs
+        env:
+          ASSETS_UPDATED: ${{ steps.action.outputs.assets-updated }}
+          PULLS_OPENED: ${{ steps.action.outputs.pulls-opened }}
+          PULLS_CLOSED: ${{ steps.action.outputs.pulls-closed }}
+        run: |
+          echo "assets-updated: $ASSETS_UPDATED"
+          echo "pulls-opened: $PULLS_OPENED"
+          echo "pulls-closed: $PULLS_CLOSED"
+
+          # No CDN assets in the file, so no updates should be found
+          if [ "$ASSETS_UPDATED" != "false" ]; then
+            echo "FAIL: expected assets-updated to be 'false', got '$ASSETS_UPDATED'"
+            exit 1
+          fi
+          if [ "$PULLS_OPENED" != "[]" ]; then
+            echo "FAIL: expected pulls-opened to be '[]', got '$PULLS_OPENED'"
+            exit 1
+          fi
+          if [ "$PULLS_CLOSED" != "[]" ]; then
+            echo "FAIL: expected pulls-closed to be '[]', got '$PULLS_CLOSED'"
+            exit 1
+          fi
+          echo "PASS"

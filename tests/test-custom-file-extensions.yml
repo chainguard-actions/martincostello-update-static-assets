@@ -1,0 +1,36 @@
+name: Test - Custom File Extensions
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        with:
+          repo-token: ${{ github.token }}
+          repo-path: ${{ github.workspace }}/tests/fixtures/custom-ext
+          dry-run: 'true'
+          file-extensions: 'cshtml'
+
+      - name: Assert no assets found when scanning only cshtml files
+        env:
+          ASSETS_UPDATED: ${{ steps.action.outputs.assets-updated }}
+          PULLS_OPENED: ${{ steps.action.outputs.pulls-opened }}
+        run: |
+          echo "assets-updated: $ASSETS_UPDATED"
+          echo "pulls-opened: $PULLS_OPENED"
+
+          # The .html file with CDN assets should NOT be scanned (only .cshtml is scanned)
+          # The .cshtml file has no CDN assets, so no updates should be found
+          if [ "$ASSETS_UPDATED" != "false" ]; then
+            echo "FAIL: expected assets-updated to be 'false' when CDN assets are in non-scanned extension, got '$ASSETS_UPDATED'"
+            exit 1
+          fi
+          if [ "$PULLS_OPENED" != "[]" ]; then
+            echo "FAIL: expected pulls-opened to be '[]', got '$PULLS_OPENED'"
+            exit 1
+          fi
+          echo "PASS"
