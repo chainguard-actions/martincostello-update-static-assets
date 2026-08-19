@@ -4,36 +4,32 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    env:
-      GITHUB_REPOSITORY: fake-owner/fake-repo
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Create test repo with no CDN assets
+      - name: Create test HTML file with no CDN assets
         run: |
-          mkdir -p /tmp/test-no-assets
-          cat > /tmp/test-no-assets/index.html <<'EOF'
-          <!DOCTYPE html>
-          <html>
-          <head><title>Test</title></head>
-          <body><p>Hello World - no CDN assets here</p></body>
-          </html>
-          EOF
-          cd /tmp/test-no-assets
-          git init --initial-branch=main
-          git config user.email "test@example.com"
-          git config user.name "Test User"
-          git remote add origin https://github.com/fake-owner/fake-repo.git
-          git add .
-          git commit -m "Initial commit"
+          mkdir -p "$GITHUB_WORKSPACE/test-site"
+          printf '%s\n' \
+            '<!DOCTYPE html>' \
+            '<html>' \
+            '  <head>' \
+            '    <title>Test Page</title>' \
+            '    <link rel="stylesheet" href="/local/styles.css">' \
+            '  </head>' \
+            '  <body>' \
+            '    <script src="/local/app.js"></script>' \
+            '  </body>' \
+            '</html>' \
+            > "$GITHUB_WORKSPACE/test-site/index.html"
 
       - id: action
         uses: .
         with:
-          repo-token: fake-token-for-dry-run
-          repo-path: /tmp/test-no-assets
-          repo: fake-owner/fake-repo
-          dry-run: 'true'
+          repo-token: ${{ github.token }}
+          repo-path: ${{ github.workspace }}/test-site
+          file-extensions: html
+          dry-run: true
 
       - name: Assert assets-updated is false
         env:

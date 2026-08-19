@@ -1,4 +1,4 @@
-name: Test dry-run with CDN assets present
+name: Test dry-run with jsDelivr CDN assets
 on:
   workflow_dispatch:
 jobs:
@@ -7,7 +7,7 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Create test site with git repo and outdated CDN asset
+      - name: Create test site with git repo and outdated jsDelivr CDN asset
         run: |
           mkdir -p "$GITHUB_WORKSPACE/test-site"
           cd "$GITHUB_WORKSPACE/test-site"
@@ -20,14 +20,20 @@ jobs:
           # Add a placeholder origin remote (fetch errors are ignored by the action)
           git remote add origin https://github.com/martincostello/update-static-assets.git
 
-          # Create HTML file with an outdated CDN asset (jQuery 1.12.4 is very old)
+          # Create HTML file with an outdated jsDelivr CDN asset (bootstrap 4.6.2 is outdated)
           printf '%s\n' \
             '<!DOCTYPE html>' \
             '<html>' \
-            '  <head><title>Test Page</title></head>' \
+            '  <head>' \
+            '    <title>Test Page</title>' \
+            '    <link rel="stylesheet"' \
+            '          href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css"' \
+            '          integrity="sha256-+IZRbz1B6ee9mUx/ejmonK+ulIP5A5bLDd6v5AmznGs="' \
+            '          crossorigin="anonymous">' \
+            '  </head>' \
             '  <body>' \
-            '    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.12.4/jquery.min.js"' \
-            '            integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ="' \
+            '    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"' \
+            '            integrity="sha256-+IZRbz1B6ee9mUx/ejmonK+ulIP5A5bLDd6v5AmznGs="' \
             '            crossorigin="anonymous"></script>' \
             '  </body>' \
             '</html>' \
@@ -45,7 +51,7 @@ jobs:
           file-extensions: html
           dry-run: true
 
-      - name: Assert action completed and outputs are set
+      - name: Assert action completed and no PRs were pushed in dry-run mode
         env:
           ASSETS_UPDATED: ${{ steps.action.outputs.assets-updated }}
           PULLS_OPENED: ${{ steps.action.outputs.pulls-opened }}
@@ -62,8 +68,7 @@ jobs:
           fi
           echo "PASS: assets-updated has a valid boolean value: $ASSETS_UPDATED"
 
-          # In dry-run mode, no PRs should be pushed to GitHub.
-          # pulls-closed should always be empty in dry-run mode.
+          # pulls-closed should always be empty in dry-run mode
           if [ "$PULLS_CLOSED" != "[]" ]; then
             echo "FAIL: expected pulls-closed to be '[]' in dry-run mode, got '$PULLS_CLOSED'"
             exit 1
